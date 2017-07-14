@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="kafka">
+    <CLASSES>
+      <root url="file://E:/SparkPlatform/kafka_2.10-0.10.2.1/libs" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://E:/SparkPlatform/kafka_2.10-0.10.2.1/libs" />
+    </SOURCES>
+    <jarDirectory url="file://E:/SparkPlatform/kafka_2.10-0.10.2.1/libs" recursive="false" />
+    <jarDirectory url="file://E:/SparkPlatform/kafka_2.10-0.10.2.1/libs" recursive="false" type="SOURCES" />
+  </library>
+</component>
