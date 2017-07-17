@@ -1,3 +1,5 @@
+package com.iscas
+
 import net.sf.json.{JSONException, JSONObject}
 import org.apache.hadoop.hbase.client.Put
 

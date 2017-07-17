@@ -1,3 +1,5 @@
+package com.iscas
+
 /**
   * Created by Lucg on 2017/7/5.
   * 过滤规则基类

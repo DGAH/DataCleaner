@@ -1,3 +1,5 @@
+package com.iscas
+
 import kafka.serializer.StringDecoder
 import net.sf.json.JSONObject
 import org.apache.spark.SparkConf

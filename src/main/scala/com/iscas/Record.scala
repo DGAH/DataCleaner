@@ -1,3 +1,5 @@
+package com.iscas
+
 import net.sf.json.{JSONException, JSONObject}
 
 /**

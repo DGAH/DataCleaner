@@ -1,3 +1,5 @@
+package com.iscas
+
 import java.text.{ParseException, SimpleDateFormat}
 
 import net.sf.json.JSONObject
