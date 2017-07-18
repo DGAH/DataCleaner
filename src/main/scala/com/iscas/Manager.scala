@@ -18,7 +18,9 @@ object Manager {
   var RecordCounts: STable = new STable()
   var ErrorRecords: ER_Table = new ER_Table()
   var nOperateTimes: Int = 0
-  var tLastOperation: Long = 0
+  // var tLastOperation: Long = 0
+  var waitForFlush: Int = 0
+  var isDirty: Boolean = false
   /*
    * 初始化
    */
@@ -26,7 +28,7 @@ object Manager {
     if (!HBase.init()) {
       return false
     }
-    tLastOperation = new Date().getTime
+    // tLastOperation = new Date().getTime
     true
   }
   /*
@@ -154,13 +156,14 @@ object Manager {
    */
   def afterOperate(): Unit = {
     nOperateTimes += 1
+    isDirty = true
     if (Config.DebugMode) {
-      println(s"nOperateTimes=$nOperateTimes")
+      println(s"nOperateTimes=$nOperateTimes, isDirty=$isDirty")
     }
-    if (isFull || isTimeUp) {
+    if (isFull) { // || isTimeUp
       flushToHBase()
       nOperateTimes = 0
-      tLastOperation = new Date().getTime
+      // tLastOperation = new Date().getTime
     }
   }
   /*
@@ -172,13 +175,13 @@ object Manager {
   /*
    * 【内部函数】判断操作间隔是否超过设定值
    */
-  def isTimeUp: Boolean = {
-    val curtime: Long = new Date().getTime
-    if (Config.DebugMode) {
-      println(s"current: $curtime")
-    }
-    curtime - tLastOperation >= Config.CheckInterval
-  }
+  /* def isTimeUp: Boolean = { */
+    // val curtime: Long = new Date().getTime
+    // if (Config.DebugMode) {
+      // println(s"current: $curtime")
+    // }
+    // curtime - tLastOperation >= Config.CheckInterval
+ /*  } */
   /*
    * 【内部函数】将所有更改提交至HBase
    */
@@ -190,6 +193,8 @@ object Manager {
     submitECSRecords()
     submitRecordCounts()
     submitErrorRecords()
+    waitForFlush = 0
+    isDirty = false
   }
   /*
    * 【内部函数】提交所有面单记录

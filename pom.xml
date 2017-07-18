@@ -135,7 +135,7 @@
             </transformers>
             <artifactSet>
               <includes>
-                <include>net.sf.json-lib:json-lib</include>
+                <include>net.sf.*:*</include>
               </includes>
             </artifactSet>
           </configuration>

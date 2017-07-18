@@ -13,7 +13,7 @@ object Config {
    * 配置文件信息
    */
   var UserName: String = "dataclean"
-  var ConfigFilePath: String = "config.properties" //"hdfs://bigdata-1:8082/user/dataclean/configs/config.json"
+  var ConfigFilePath: String = "../../config.properties" //"hdfs://bigdata-1:8082/user/dataclean/configs/config.json"
   /*
    * Debug设置
    */
@@ -34,7 +34,7 @@ object Config {
    * HBase设置
    */
   var SubmitInterval: Int = 1000 // 两次HBase提交之间的操作动作数
-  var CheckInterval: Long = 5000 //两次HBase提交之间的最大时间间隔。单位：时间戳
+  var CheckInterval: Long = 5 //两次HBase提交之间的最大时间间隔。单位：Streaming Batch time
   /*
    * 存储结构
    */

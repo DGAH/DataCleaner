@@ -18,9 +18,14 @@ object Consumer {
   def work(): Unit = {
     val sparkConfig = new SparkConf().setAppName(Config.AppName)
     val streamingContext = new StreamingContext(sparkConfig, Seconds(Config.WorkInterval))
+    streamingContext.addStreamingListener(new StateCheckListener())
+
     val strtopic = createTopicString()
     val topics = Set(strtopic)
-    val inputDStream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](streamingContext, Config.m_Kafka_Params, topics)
+    val inputDStream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](
+      streamingContext, 
+      Config.m_Kafka_Params, 
+      topics)
     val dStream = inputDStream.flatMap(
       line => {
         val jsval = JSONObject.fromObject(line._2)
@@ -40,6 +45,7 @@ object Consumer {
         )
       }
     )
+
     streamingContext.start()
     streamingContext.awaitTermination()
   }
