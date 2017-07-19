@@ -5,6 +5,7 @@ import net.sf.json.JSONObject
 import org.apache.spark.SparkConf
 import org.apache.spark.streaming.kafka.KafkaUtils
 import org.apache.spark.streaming.{Seconds, StreamingContext}
+import org.apache.spark.rdd.RDD
 
 /**
   * Created by Lucg on 2017/7/5.
@@ -26,25 +27,28 @@ object Consumer {
       streamingContext, 
       Config.m_Kafka_Params, 
       topics)
+
     val dStream = inputDStream.flatMap(
       line => {
         val jsval = JSONObject.fromObject(line._2)
         Some(jsval)
       }
-    )
-    dStream.foreachRDD(
-      rdd => {
-        rdd.foreachPartition(
-          records_iterator => {
-            records_iterator.foreach(
-              jsval => {
-                filterData(jsval)
-              }
-            )
-          }
-        )
-      }
-    )
+    ).map(jsval => filterData(jsval))
+      .foreach(rdd => afterWrapper(rdd))
+
+    // dStream.foreachRDD(
+      // rdd => {
+        // rdd.foreachPartition(
+          // records_iterator => {
+            // records_iterator.foreach(
+              // jsval => {
+                // filterData(jsval)
+              // }
+            // )
+          // }
+        // )
+      // }
+    // )
 
     streamingContext.start()
     streamingContext.awaitTermination()
@@ -58,7 +62,7 @@ object Consumer {
   /*
    * 数据清洗
    */
-  def filterData(jsval: JSONObject): Unit = {
+  def filterData(jsval: JSONObject) = {
     if (Config.DebugMode) {
       println("================================ FilterData: Start ================================")
     }
@@ -68,10 +72,15 @@ object Consumer {
       record.test(!Config.Debug_ShowFullRecord)
     }
     val result: (String, Int, String) = Filter.work(record)
-    afterFilterData(record, result._1, result._2, result._3)
+    // afterFilterData(record, result._1, result._2, result._3)
     if (Config.DebugMode) {
       println("================================ FilterData: Finish ================================")
     }
+    (record, result)
+  }
+
+  def afterWrapper(rdd: RDD[(Record, (String, Int, String))]): Unit = {
+    rdd.foreach(record => afterFilterData(record._1, record._2._1, record._2._2, record._2._3))
   }
   /*
    * 处理清洗结果
