@@ -26,6 +26,7 @@ object Config {
   var AppName: String = "DataCleaner" // SparkConf 的应用程序名
   var WorkInterval: Int = 1 // StreamingContext 的工作时间间隔，也就是程序抓取数据的工作间隔。单位：秒
   var Topic: String = "DataCollect" // 当前话题
+  var UseKerberos: Boolean = false
   /*
    * Kafka设置
    */
@@ -80,6 +81,7 @@ object Config {
       AppName = m_Data.getProperty("AppName", AppName)
       Topic = m_Data.getProperty("Topic", Topic)
       WorkInterval = m_Data.getProperty("WorkInterval", WorkInterval.toString).toInt
+      UseKerberos = m_Data.getProperty("UseKerberos", UseKerberos.toString).toBoolean
       // Kafka & HBase
       val keys: util.Enumeration[_] = m_Data.propertyNames()
       while (keys.hasMoreElements) {
@@ -100,6 +102,9 @@ object Config {
       }
       // Kafka
       BrokerList = m_Kafka_Params.getOrElse("metadata.broker.list", BrokerList)
+      if (UseKerberos) {
+        m_Kafka_Params += ("security.protocol" -> "PLAINTEXTSASL")
+      }
       // HBase
       SubmitInterval = m_Data.getProperty("SubmitInterval", SubmitInterval.toString).toInt
       CheckInterval = m_Data.getProperty("CheckInterval", CheckInterval.toString).toLong
