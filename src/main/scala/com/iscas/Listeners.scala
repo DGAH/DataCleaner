@@ -1,7 +1,9 @@
 package com.iscas
 
-import org.apache.spark.streaming.scheduler.{StreamingListener, StreamingListenerBatchStarted}
-
+import org.apache.spark.streaming.scheduler.{StreamingListener, StreamingListenerBatchCompleted, StreamingListenerBatchStarted}
+/*
+ * 监听器
+ */
 class StateCheckListener extends StreamingListener {
 
   override def onBatchStarted(batchStarted: StreamingListenerBatchStarted) {
@@ -17,6 +19,11 @@ class StateCheckListener extends StreamingListener {
         // Manager.waitForFlush += 1
       // }
     // }
+  }
+
+  override def onBatchCompleted(batchCompleted: StreamingListenerBatchCompleted): Unit = {
+    //val curTime: Long = batchCompleted.batchInfo.processingEndTime.getOrElse(default = 0)
+    super.onBatchCompleted(batchCompleted)
   }
 }
 

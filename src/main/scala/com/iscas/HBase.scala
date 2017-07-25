@@ -11,42 +11,33 @@ import org.apache.hadoop.hbase.{HBaseConfiguration, TableName}
   * HBase操作员
   * 主要任务：接受并完成Manager交给的有关操作HBase的工作
   */
-object HBase {
-  var m_HBase_Config: Configuration = null
+class HBase {
   /*
    * 初始化
    */
   def init(): Boolean = {
-    try {
-      m_HBase_Config = HBaseConfiguration.create()
-    } catch {
-      case ex: Exception => {
-        if (Config.DebugMode) {
-          println(ex.toString)
-        }
-        return false
-      }
-    }
+    val hConfig = createHBaseConfig()
+    hConfig == null
+  }
+  /*
+   * 构建配置结构
+   */
+  def createHBaseConfig(): Configuration = {
+    val hConfig: Configuration = HBaseConfiguration.create()
     Config.m_HBase_Params.foreach(
       kv_pair => {
-        m_HBase_Config.set(kv_pair._1, kv_pair._2)
+        hConfig.set(kv_pair._1, kv_pair._2)
       }
     )
-    true
+    hConfig
   }
   /*
    * 提交一组数据到HBase表
    */
   def commit(data: Put, tableName: String): Boolean = {
     try {
-      val hConfig = HBaseConfiguration.create()
-      Config.m_HBase_Params.foreach(
-        kv_pair => {
-          hConfig.set(kv_pair._1, kv_pair._2)
-        }
-      )
+      val hConfig = createHBaseConfig()
       val table = new HTable(hConfig, TableName.valueOf(tableName))
-      //val table = new HTable(m_HBase_Config, TableName.valueOf(tableName))
       table.put(data)
       table.flushCommits()
       table.close()
@@ -68,14 +59,8 @@ object HBase {
    */
   def commit(puts: List[Put], tableName: String): Boolean = {
     try {
-      val hConfig = HBaseConfiguration.create()
-      Config.m_HBase_Params.foreach(
-        kv_pair => {
-          hConfig.set(kv_pair._1, kv_pair._2)
-        }
-      )
+      val hConfig = createHBaseConfig()
       val table = new HTable(hConfig, TableName.valueOf(tableName))
-      //val table = new HTable(m_HBase_Config, TableName.valueOf(tableName))
       table.put(puts.asJava)
       table.flushCommits()
       table.close()
@@ -98,14 +83,8 @@ object HBase {
   def acquire(ask: Get, tableName: String): Result = {
     var result: Result = null
     try {
-      val hConfig = HBaseConfiguration.create()
-      Config.m_HBase_Params.foreach(
-        kv_pair => {
-          hConfig.set(kv_pair._1, kv_pair._2)
-        }
-      )
+      val hConfig = createHBaseConfig()
       val table = new HTable(hConfig, TableName.valueOf(tableName))
-      //val table = new HTable(m_HBase_Config, TableName.valueOf(tableName))
       result = table.get(ask)
       table.close()
     } catch {
@@ -129,14 +108,8 @@ object HBase {
   def acquire(gets: List[Get], tableName: String): Array[Result] = {
     var result: Array[Result] = Array[Result]()
     try {
-      val hConfig = HBaseConfiguration.create()
-      Config.m_HBase_Params.foreach(
-        kv_pair => {
-          hConfig.set(kv_pair._1, kv_pair._2)
-        }
-      )
+      val hConfig = createHBaseConfig()
       val table = new HTable(hConfig, TableName.valueOf(tableName))
-      //val table = new HTable(m_HBase_Config, TableName.valueOf(tableName))
       result = table.get(gets.asJava)
       table.close()
     } catch {

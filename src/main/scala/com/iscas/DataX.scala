@@ -11,7 +11,8 @@ object DataX {
   def main(args: Array[String]): Unit = {
     Config.init(args)
     Config.loadConfigs()
-    if (Manager.init()) {
+    val managerForTest = new Manager()
+    if (managerForTest.init()) {
       if (Config.DebugMode && Config.Debug_PrintConfigs) {
         Config.printConfigs()
       }

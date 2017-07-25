@@ -26,7 +26,8 @@ object Consumer {
     val inputDStream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](
       streamingContext, 
       Config.m_Kafka_Params, 
-      topics)
+      topics
+    )
 
     val dStream = inputDStream.flatMap(
       line => {
@@ -35,20 +36,6 @@ object Consumer {
       }
     ).map(jsval => filterData(jsval))
       .foreach(rdd => afterWrapper(rdd))
-
-    // dStream.foreachRDD(
-      // rdd => {
-        // rdd.foreachPartition(
-          // records_iterator => {
-            // records_iterator.foreach(
-              // jsval => {
-                // filterData(jsval)
-              // }
-            // )
-          // }
-        // )
-      // }
-    // )
 
     streamingContext.start()
     streamingContext.awaitTermination()
@@ -62,7 +49,7 @@ object Consumer {
   /*
    * 数据清洗
    */
-  def filterData(jsval: JSONObject) = {
+  def filterData(jsval: JSONObject): (Record, (String, Int, String)) = {
     if (Config.DebugMode) {
       println("================================ FilterData: Start ================================")
     }
@@ -72,7 +59,6 @@ object Consumer {
       record.test(!Config.Debug_ShowFullRecord)
     }
     val result: (String, Int, String) = Filter.work(record)
-    // afterFilterData(record, result._1, result._2, result._3)
     if (Config.DebugMode) {
       println("================================ FilterData: Finish ================================")
     }
@@ -80,22 +66,32 @@ object Consumer {
   }
 
   def afterWrapper(rdd: RDD[(Record, (String, Int, String))]): Unit = {
-    rdd.foreach(record => afterFilterData(record._1, record._2._1, record._2._2, record._2._3))
+    val manager: Manager = new Manager()
+    if (!manager.init()) {
+      if (Config.DebugMode) {
+        println(s"Manager init failed! RDD=${rdd.id}")
+      }
+      throw RuntimeException
+    }
+    rdd.foreach(record => afterFilterData(manager, record._1, record._2._1, record._2._2, record._2._3))
+    if (manager.isDirty) {
+      manager.flushToHBase()
+    }
   }
   /*
    * 处理清洗结果
    */
-  def afterFilterData(record: Record, ruleID: String, opinion: Int, message: String): Unit = {
+  def afterFilterData(manager: Manager, record: Record, ruleID: String, opinion: Int, message: String): Unit = {
     if (opinion == Global.OPINION_NOTHING) {
-      Manager.commit(record)
+      manager.commit(record)
     } else if (opinion == Global.OPINION_NEED_DISCARD) {
-      Manager.discard(record, ruleID, message)
+      manager.discard(record, ruleID, message)
     } else if (opinion == Global.OPINION_NEED_RETRY) {
-      Manager.askForRetry(record, ruleID, message)
+      manager.askForRetry(record, ruleID, message)
     } else if (opinion == Global.OPINION_UNCERTAIN){
-      Manager.uncertain(record, ruleID, message)
+      manager.uncertain(record, ruleID, message)
     } else {
-      Manager.custom(record, ruleID, opinion, message)
+      manager.custom(record, ruleID, opinion, message)
     }
   }
 }

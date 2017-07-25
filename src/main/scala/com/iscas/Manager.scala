@@ -12,23 +12,23 @@ import scala.util.control.Breaks
   * 主要任务：对经过Consumer处理的数据进行管理，视情况将其写入HBase，同时负责向上游反馈处理结果
   * 对应设计图中的Distributor部分
   */
-object Manager {
+class Manager {
+  var Operator: HBase = null
   var EC_Records: EC_Table = new EC_Table()
   var ECS_Records: ECS_Table = new ECS_Table()
   var RecordCounts: STable = new STable()
   var ErrorRecords: ER_Table = new ER_Table()
   var nOperateTimes: Int = 0
-  // var tLastOperation: Long = 0
   var waitForFlush: Int = 0
   var isDirty: Boolean = false
   /*
    * 初始化
    */
   def init(): Boolean = {
-    if (!HBase.init()) {
+    Operator = new HBase()
+    if (!Operator.init()) {
       return false
     }
-    // tLastOperation = new Date().getTime
     true
   }
   /*
@@ -160,10 +160,8 @@ object Manager {
     if (Config.DebugMode) {
       println(s"nOperateTimes=$nOperateTimes, isDirty=$isDirty")
     }
-    if (isFull) { // || isTimeUp
+    if (isFull) {
       flushToHBase()
-      nOperateTimes = 0
-      // tLastOperation = new Date().getTime
     }
   }
   /*
@@ -172,16 +170,6 @@ object Manager {
   def isFull: Boolean = {
     nOperateTimes >= Config.SubmitInterval
   }
-  /*
-   * 【内部函数】判断操作间隔是否超过设定值
-   */
-  /* def isTimeUp: Boolean = { */
-    // val curtime: Long = new Date().getTime
-    // if (Config.DebugMode) {
-      // println(s"current: $curtime")
-    // }
-    // curtime - tLastOperation >= Config.CheckInterval
- /*  } */
   /*
    * 【内部函数】将所有更改提交至HBase
    */
@@ -193,6 +181,7 @@ object Manager {
     submitECSRecords()
     submitRecordCounts()
     submitErrorRecords()
+    nOperateTimes = 0
     waitForFlush = 0
     isDirty = false
   }
@@ -206,7 +195,7 @@ object Manager {
         puts = puts :+ kv_pair._2.pack()
       }
     )
-    HBase.commit(puts, "ExpressContract")
+    Operator.commit(puts, "ExpressContract")
     EC_Records.reset()
   }
   /*
@@ -219,7 +208,7 @@ object Manager {
         puts = puts :+ kv_pair._2.pack()
       }
     )
-    HBase.commit(puts, "ExpressContractState")
+    Operator.commit(puts, "ExpressContractState")
     ECS_Records.reset()
   }
   /*
@@ -242,7 +231,7 @@ object Manager {
         gets = gets :+ get
       }
     )
-    val results: Array[Result] = HBase.acquire(gets, "ExpressStatistics")
+    val results: Array[Result] = Operator.acquire(gets, "ExpressStatistics")
     var puts: List[Put] = List()
     RecordCounts.to_save.foreach(
       kv_pair => {
@@ -291,7 +280,7 @@ object Manager {
         puts = puts :+ put
       }
     )
-    HBase.commit(puts, "ExpressStatistics")
+    Operator.commit(puts, "ExpressStatistics")
     RecordCounts.reset()
   }
   /*
@@ -316,7 +305,7 @@ object Manager {
         puts = puts :+ put
       }
     )
-    HBase.commit(puts, "ExpressErrorStatistics")
+    Operator.commit(puts, "ExpressErrorStatistics")
     ErrorRecords.reset()
   }
 }
