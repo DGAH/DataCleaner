@@ -10,14 +10,14 @@ object DataX {
    */
   def main(args: Array[String]): Unit = {
     Config.init(args)
-    Config.loadConfigs()
-    val managerForTest = new Manager()
-    if (managerForTest.init()) {
-      if (Config.DebugMode && Config.Debug_PrintConfigs) {
-        Config.printConfigs()
-      }
-    } else {
-      println("Load Configs Failed! And The Program Has Been Stopped.")
+    if (!Config.loadConfigs()) {
+      println("Load Configs Failed! And The Program Will Use Default Config Value.")
+    }
+    if (Config.DebugMode && Config.Debug_PrintConfigs) {
+      Config.printConfigs()
+    }
+    if (!Manager.init()) {
+      println("Config Data Error! And The Program Has Been Stopped.")
       return
     }
     Consumer.work()

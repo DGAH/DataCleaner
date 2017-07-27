@@ -11,13 +11,19 @@ import org.apache.hadoop.hbase.{HBaseConfiguration, TableName}
   * HBase操作员
   * 主要任务：接受并完成Manager交给的有关操作HBase的工作
   */
-class HBase {
+object HBase {
   /*
    * 初始化
    */
   def init(): Boolean = {
-    val hConfig = createHBaseConfig()
-    hConfig == null
+    try {
+      createHBaseConfig()
+    } catch {
+      case ex: Exception => {
+        return false
+      }
+    }
+    true
   }
   /*
    * 构建配置结构
@@ -35,6 +41,9 @@ class HBase {
    * 提交一组数据到HBase表
    */
   def commit(data: Put, tableName: String): Boolean = {
+    if (Config.DebugMode) {
+      println(s"DEBUG: Put data into table $tableName")
+    }
     try {
       val hConfig = createHBaseConfig()
       val table = new HTable(hConfig, TableName.valueOf(tableName))
@@ -58,6 +67,9 @@ class HBase {
    * 提交多组数据到HBase表
    */
   def commit(puts: List[Put], tableName: String): Boolean = {
+    if (Config.DebugMode) {
+      println(s"DEBUG: Put data into table $tableName, count=${puts.length}")
+    }
     try {
       val hConfig = createHBaseConfig()
       val table = new HTable(hConfig, TableName.valueOf(tableName))
@@ -81,6 +93,9 @@ class HBase {
    * 提交一组查询并从HBase表中获得对应的一组数据
    */
   def acquire(ask: Get, tableName: String): Result = {
+    if (Config.DebugMode) {
+      println(s"DEBUG: Get data from table $tableName")
+    }
     var result: Result = null
     try {
       val hConfig = createHBaseConfig()
@@ -100,12 +115,18 @@ class HBase {
     if (result == null) {
       result = new Result()
     }
+    if (Config.DebugMode) {
+      println(s"DEBUG: result={${result.toString}}")
+    }
     result
   }
   /*
    * 提交多组查询并从HBase表中获得对应的多组数据
    */
   def acquire(gets: List[Get], tableName: String): Array[Result] = {
+    if (Config.DebugMode) {
+      println(s"DEBUG: Get data from table $tableName, count=${gets.length}")
+    }
     var result: Array[Result] = Array[Result]()
     try {
       val hConfig = createHBaseConfig()
@@ -121,6 +142,9 @@ class HBase {
           println("****************ERROR:END****************")
         }
       }
+    }
+    if (Config.DebugMode) {
+      println(s"DEBUG: result={${result.toString}}")
     }
     result
   }

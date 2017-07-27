@@ -62,6 +62,12 @@ object Config {
     try {
       val fin: InputStream = this.getClass.getResourceAsStream(ConfigFilePath)
       m_Data.load(fin)
+      if (m_Data.isEmpty) {
+        if (DebugMode) {
+          println("WARNING: Can't Parse Config Data! m_Data is Empty.")
+        }
+        return false
+      }
     } catch {
       case ex: Exception => {
         if (DebugMode) {

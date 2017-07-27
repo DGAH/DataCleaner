@@ -19,7 +19,7 @@ object Consumer {
   def work(): Unit = {
     val sparkConfig = new SparkConf().setAppName(Config.AppName)
     val streamingContext = new StreamingContext(sparkConfig, Seconds(Config.WorkInterval))
-    streamingContext.addStreamingListener(new StateCheckListener())
+    //streamingContext.addStreamingListener(new StateCheckListener())
 
     val strtopic = createTopicString()
     val topics = Set(strtopic)
@@ -66,32 +66,25 @@ object Consumer {
   }
 
   def afterWrapper(rdd: RDD[(Record, (String, Int, String))]): Unit = {
-    val manager: Manager = new Manager()
-    if (!manager.init()) {
-      if (Config.DebugMode) {
-        println(s"Manager init failed! RDD=${rdd.id}")
-      }
-      throw RuntimeException
-    }
-    rdd.foreach(record => afterFilterData(manager, record._1, record._2._1, record._2._2, record._2._3))
-    if (manager.isDirty) {
-      manager.flushToHBase()
+    rdd.foreach(record => afterFilterData(record._1, record._2._1, record._2._2, record._2._3))
+    if (Manager.isDirty) {
+      Manager.flushToHBase()
     }
   }
   /*
    * 处理清洗结果
    */
-  def afterFilterData(manager: Manager, record: Record, ruleID: String, opinion: Int, message: String): Unit = {
+  def afterFilterData(record: Record, ruleID: String, opinion: Int, message: String): Unit = {
     if (opinion == Global.OPINION_NOTHING) {
-      manager.commit(record)
+      Manager.commit(record)
     } else if (opinion == Global.OPINION_NEED_DISCARD) {
-      manager.discard(record, ruleID, message)
+      Manager.discard(record, ruleID, message)
     } else if (opinion == Global.OPINION_NEED_RETRY) {
-      manager.askForRetry(record, ruleID, message)
+      Manager.askForRetry(record, ruleID, message)
     } else if (opinion == Global.OPINION_UNCERTAIN){
-      manager.uncertain(record, ruleID, message)
+      Manager.uncertain(record, ruleID, message)
     } else {
-      manager.custom(record, ruleID, opinion, message)
+      Manager.custom(record, ruleID, opinion, message)
     }
   }
 }

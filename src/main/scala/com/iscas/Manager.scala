@@ -12,8 +12,7 @@ import scala.util.control.Breaks
   * 主要任务：对经过Consumer处理的数据进行管理，视情况将其写入HBase，同时负责向上游反馈处理结果
   * 对应设计图中的Distributor部分
   */
-class Manager {
-  var Operator: HBase = null
+object Manager {
   var EC_Records: EC_Table = new EC_Table()
   var ECS_Records: ECS_Table = new ECS_Table()
   var RecordCounts: STable = new STable()
@@ -25,8 +24,7 @@ class Manager {
    * 初始化
    */
   def init(): Boolean = {
-    Operator = new HBase()
-    if (!Operator.init()) {
+    if (!HBase.init()) {
       return false
     }
     true
@@ -195,7 +193,7 @@ class Manager {
         puts = puts :+ kv_pair._2.pack()
       }
     )
-    Operator.commit(puts, "ExpressContract")
+    HBase.commit(puts, "ExpressContract")
     EC_Records.reset()
   }
   /*
@@ -208,7 +206,7 @@ class Manager {
         puts = puts :+ kv_pair._2.pack()
       }
     )
-    Operator.commit(puts, "ExpressContractState")
+    HBase.commit(puts, "ExpressContractState")
     ECS_Records.reset()
   }
   /*
@@ -231,7 +229,7 @@ class Manager {
         gets = gets :+ get
       }
     )
-    val results: Array[Result] = Operator.acquire(gets, "ExpressStatistics")
+    val results: Array[Result] = HBase.acquire(gets, "ExpressStatistics")
     var puts: List[Put] = List()
     RecordCounts.to_save.foreach(
       kv_pair => {
@@ -280,7 +278,7 @@ class Manager {
         puts = puts :+ put
       }
     )
-    Operator.commit(puts, "ExpressStatistics")
+    HBase.commit(puts, "ExpressStatistics")
     RecordCounts.reset()
   }
   /*
@@ -305,7 +303,7 @@ class Manager {
         puts = puts :+ put
       }
     )
-    Operator.commit(puts, "ExpressErrorStatistics")
+    HBase.commit(puts, "ExpressErrorStatistics")
     ErrorRecords.reset()
   }
 }
