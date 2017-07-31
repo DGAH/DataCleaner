@@ -1,11 +1,7 @@
 package com.iscas
 
-import kafka.common.TopicAndPartition
-import kafka.message.MessageAndMetadata
 import kafka.serializer.StringDecoder
-import kafka.utils.{ZKGroupTopicDirs, ZkUtils}
 import net.sf.json.JSONObject
-import org.I0Itec.zkclient.ZkClient
 import org.apache.spark.SparkConf
 import org.apache.spark.streaming.kafka.{HasOffsetRanges, KafkaUtils, OffsetRange}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
@@ -17,45 +13,49 @@ import org.apache.spark.streaming.dstream.InputDStream
   * 主要任务：从上游接收数据，并对其进行分布式处理
   */
 object Consumer {
-  var Topics: Set[String] = Set()
-  var ZookeeperTopicPath: String = ""
-  var ZookeeperClient: ZkClient = null
-  var NewTask: Boolean = true
+  var NewTask: Boolean = false
   /*
    * 主函数
    */
   def work(): Unit = {
-    // StreamingContext
-    val streaming_context: StreamingContext = acquireStreamingContext()
+    val streaming_context: StreamingContext = StreamingContext.getOrCreate(Config.CheckpointPath, coreLogic)
     if (streaming_context == null) {
-      return
-    }
-    streaming_context.addStreamingListener(new StateCheckListener())
-    // InputDStream
-    val input_dstream: InputDStream[(String, String)] = acquireInputStream(streaming_context)
-    if (input_dstream == null) {
+      if (Config.DebugMode) {
+        println("ERROR: Create Streaming Context Failed!")
+      }
       return
     }
     if (Config.DebugMode) {
       if (NewTask) {
-        println("DEBUG: Find New Task!")
+        println("******** Create New Task ********")
       } else {
-        println("DEBUG: Find Old Task!")
-        println("DEBUG: Program Exit As Planned.")
-        return
+        println("******** Continue Last Task ********")
       }
     }
+    streaming_context.start()
+    streaming_context.awaitTermination()
+  }
+  /*
+   * Core Logic
+   */
+  def coreLogic(): StreamingContext = {
+    // StreamingContext
+    val streaming_context: StreamingContext = acquireStreamingContext()
+    if (streaming_context == null) {
+      return null
+    }
+    // InputDStream
+    val input_dstream: InputDStream[(String, String)] = acquireInputStream(streaming_context)
+    if (input_dstream == null) {
+      return null
+    }
+    // Prepare
+    streaming_context.addStreamingListener(new StateCheckListener())
+    streaming_context.checkpoint(Config.CheckpointPath)
+    input_dstream.checkpoint(Seconds(Config.WorkInterval * 5))
+    NewTask = true
     // FilterData
-    if (Config.DebugMode && !NewTask) {
-      println("******** Continue Last Task ********")
-    }
-    var offset_ranges = Array[OffsetRange]()
-    input_dstream.transform(
-      rdd => {
-        offset_ranges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
-        rdd
-      }
-    ).flatMap(
+    input_dstream.flatMap(
       line => {
         val jsval: JSONObject = JSONObject.fromObject(line._2)
         Some(jsval)
@@ -64,21 +64,12 @@ object Consumer {
       jsval => filterData(jsval)
     ).foreachRDD(
       rdd => {
-        for (offset <- offset_ranges) {
-          val zk_path: String = s"$ZookeeperTopicPath/${offset.partition}"
-          ZkUtils.updatePersistentPath(ZookeeperClient, zk_path, offset.fromOffset.toString) //TODO: 修复此函数被废除的问题
-          if (Config.DebugMode) {
-            println(s"Save Offset: [Value] ${offset.fromOffset} [Path] $zk_path")
-          }
-        }
         rdd.foreachPartition(
           iter => commitPartition(iter)
         )
       }
     )
-    // Work
-    streaming_context.start()
-    streaming_context.awaitTermination()
+    streaming_context
   }
   /*
    * 准备环境
@@ -86,42 +77,17 @@ object Consumer {
   def acquireStreamingContext(): StreamingContext = {
     val spark_config: SparkConf = new SparkConf().setAppName(Config.AppName)
     val streaming_context: StreamingContext = new StreamingContext(spark_config, Seconds(Config.WorkInterval))
-    Topics = Set(Config.Topic)
     streaming_context
   }
   /*
    * 建立连接
-   * 代码参考：http://blog.csdn.net/kk303/article/details/52767260
+   * 代码参考：http://www.jianshu.com/p/00b591c5f623
    */
   def acquireInputStream(streaming_context: StreamingContext): InputDStream[(String, String)] = {
-    var input_stream: InputDStream[(String, String)] = null
-    val topic = Config.Topic
-    val topic_dir = new ZKGroupTopicDirs(Config.Group, topic)
-    ZookeeperTopicPath = topic_dir.consumerOffsetDir
-    ZookeeperClient = new ZkClient(Config.ZookeeperHost)
-    val children = ZookeeperClient.countChildren(ZookeeperTopicPath)
-    if (children > 0) {
-      NewTask = false
-      var from_offsets: Map[TopicAndPartition, Long] = Map()
-      for (i <- 0 until children) {
-        val partition_offset = ZookeeperClient.readData[String](s"$ZookeeperTopicPath/$i")
-        val tp = TopicAndPartition(topic, i)
-        val next_offset = partition_offset.toLong
-        from_offsets += (tp -> next_offset)
-        if (Config.DebugMode) {
-          println(s"DEBUG: [Offset] $next_offset [Path] $ZookeeperTopicPath/$i")
-        }
-      }
-      val message_handler = (mmd : MessageAndMetadata[String, String]) => (mmd.topic, mmd.message())
-      input_stream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder, (String, String)](
-        streaming_context, Config.m_Kafka_Params, from_offsets, message_handler
-      )
-    } else {
-      NewTask = true
-      input_stream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](
-        streaming_context, Config.m_Kafka_Params, Topics
-      )
-    }
+    val topics: Set[String] = Set(Config.Topic)
+    val input_stream: InputDStream[(String, String)] = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](
+      streaming_context, Config.m_Kafka_Params, topics
+    )
     input_stream
   }
   /*

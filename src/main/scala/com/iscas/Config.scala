@@ -27,6 +27,7 @@ object Config {
   var WorkInterval: Int = 1 // StreamingContext 的工作时间间隔，也就是程序抓取数据的工作间隔。单位：秒
   var Group: String = "default-group" //当前话题组
   var Topic: String = "DataCollect" // 当前话题
+  var CheckpointPath: String = "../" //检查点文件路径
   var UseKerberos: Boolean = false
   /*
    * Kafka设置
@@ -89,6 +90,7 @@ object Config {
       AppName = m_Data.getProperty("AppName", AppName)
       Group = m_Data.getProperty("Group", Group)
       Topic = m_Data.getProperty("Topic", Topic)
+      CheckpointPath = m_Data.getProperty("CheckpointPath", CheckpointPath)
       WorkInterval = m_Data.getProperty("WorkInterval", WorkInterval.toString).toInt
       UseKerberos = m_Data.getProperty("UseKerberos", UseKerberos.toString).toBoolean
       // Kafka & HBase
@@ -147,6 +149,7 @@ object Config {
     println(s"[WorkInterval] $WorkInterval second(s)")
     println(s"[Group] $Group")
     println(s"[Topic] $Topic")
+    println(s"[CheckpointPath] $CheckpointPath")
     println("--------------------------------Kafka--------------------------------")
     m_Kafka_Params.foreach(
       kv_pair => {
