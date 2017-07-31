@@ -25,6 +25,7 @@ object Config {
    */
   var AppName: String = "DataCleaner" // SparkConf 的应用程序名
   var WorkInterval: Int = 1 // StreamingContext 的工作时间间隔，也就是程序抓取数据的工作间隔。单位：秒
+  var Group: String = "default-group" //当前话题组
   var Topic: String = "DataCollect" // 当前话题
   var UseKerberos: Boolean = false
   /*
@@ -86,6 +87,7 @@ object Config {
       Debug_PrintConfigs = m_Data.getProperty("Debug|PrintConfigs", Debug_PrintConfigs.toString).toBoolean
       // Spark Stream
       AppName = m_Data.getProperty("AppName", AppName)
+      Group = m_Data.getProperty("Group", Group)
       Topic = m_Data.getProperty("Topic", Topic)
       WorkInterval = m_Data.getProperty("WorkInterval", WorkInterval.toString).toInt
       UseKerberos = m_Data.getProperty("UseKerberos", UseKerberos.toString).toBoolean
@@ -143,6 +145,7 @@ object Config {
     println("--------------------------------SparkStreaming--------------------------------")
     println(s"[AppName] $AppName")
     println(s"[WorkInterval] $WorkInterval second(s)")
+    println(s"[Group] $Group")
     println(s"[Topic] $Topic")
     println("--------------------------------Kafka--------------------------------")
     m_Kafka_Params.foreach(

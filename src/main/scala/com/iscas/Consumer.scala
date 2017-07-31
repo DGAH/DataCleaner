@@ -36,55 +36,46 @@ object Consumer {
     if (input_dstream == null) {
       return
     }
+    if (Config.DebugMode) {
+      if (NewTask) {
+        println("DEBUG: Find New Task!")
+      } else {
+        println("DEBUG: Find Old Task!")
+        println("DEBUG: Program Exit As Planned.")
+        return
+      }
+    }
     // FilterData
-    if (NewTask) {
-      if (Config.DebugMode) {
-        println("******** Create New Task ********")
-      }
-      input_dstream.flatMap(
-        line => {
-          val jsval: JSONObject = JSONObject.fromObject(line._2)
-          Some(jsval)
-        }
-      ).map(
-        jsval => filterData(jsval)
-      ).foreachRDD(
-        rdd => {
-          rdd.foreachPartition(
-            iter => commitPartition(iter)
-          )
-        }
-      )
+    if (Config.DebugMode && !NewTask) {
+      println("******** Continue Last Task ********")
     }
-    else {
-      if (Config.DebugMode) {
-        println("******** Continue Last Task ********")
+    var offset_ranges = Array[OffsetRange]()
+    input_dstream.transform(
+      rdd => {
+        offset_ranges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
+        rdd
       }
-      var offset_ranges = Array[OffsetRange]()
-      input_dstream.transform(
-        rdd => {
-          offset_ranges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
-          rdd
-        }
-      ).flatMap(
-        line => {
-          val jsval: JSONObject = JSONObject.fromObject(line._2)
-          Some(jsval)
-        }
-      ).map(
-        jsval => filterData(jsval)
-      ).foreachRDD(
-        rdd => {
-          for (offset <- offset_ranges) {
-            val zk_path: String = s"$ZookeeperTopicPath/${offset.partition}"
-            ZkUtils.updatePersistentPath(ZookeeperClient, zk_path, offset.fromOffset.toString)
+    ).flatMap(
+      line => {
+        val jsval: JSONObject = JSONObject.fromObject(line._2)
+        Some(jsval)
+      }
+    ).map(
+      jsval => filterData(jsval)
+    ).foreachRDD(
+      rdd => {
+        for (offset <- offset_ranges) {
+          val zk_path: String = s"$ZookeeperTopicPath/${offset.partition}"
+          ZkUtils.updatePersistentPath(ZookeeperClient, zk_path, offset.fromOffset.toString) //TODO: 修复此函数被废除的问题
+          if (Config.DebugMode) {
+            println(s"Save Offset: [Value] ${offset.fromOffset} [Path] $zk_path")
           }
-          rdd.foreachPartition(
-            iter => commitPartition(iter)
-          )
         }
-      )
-    }
+        rdd.foreachPartition(
+          iter => commitPartition(iter)
+        )
+      }
+    )
     // Work
     streaming_context.start()
     streaming_context.awaitTermination()
@@ -104,9 +95,8 @@ object Consumer {
    */
   def acquireInputStream(streaming_context: StreamingContext): InputDStream[(String, String)] = {
     var input_stream: InputDStream[(String, String)] = null
-    val group = "tempGroup" //TODO: confirm this value.
     val topic = Config.Topic
-    val topic_dir = new ZKGroupTopicDirs(group, topic)
+    val topic_dir = new ZKGroupTopicDirs(Config.Group, topic)
     ZookeeperTopicPath = topic_dir.consumerOffsetDir
     ZookeeperClient = new ZkClient(Config.ZookeeperHost)
     val children = ZookeeperClient.countChildren(ZookeeperTopicPath)
@@ -118,6 +108,9 @@ object Consumer {
         val tp = TopicAndPartition(topic, i)
         val next_offset = partition_offset.toLong
         from_offsets += (tp -> next_offset)
+        if (Config.DebugMode) {
+          println(s"DEBUG: [Offset] $next_offset [Path] $ZookeeperTopicPath/$i")
+        }
       }
       val message_handler = (mmd : MessageAndMetadata[String, String]) => (mmd.topic, mmd.message())
       input_stream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder, (String, String)](
