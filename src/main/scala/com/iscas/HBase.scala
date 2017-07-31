@@ -3,7 +3,6 @@ package com.iscas
 import scala.collection.JavaConverters._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.client._
-import org.apache.hadoop.hbase.io.ImmutableBytesWritable
 import org.apache.hadoop.hbase.{HBaseConfiguration, TableName}
 
 /**

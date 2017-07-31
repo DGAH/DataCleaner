@@ -1,7 +1,5 @@
 package com.iscas
 
-import java.util.Date
-
 import org.apache.hadoop.hbase.client.{Get, Put, Result}
 
 import scala.util.control.Breaks

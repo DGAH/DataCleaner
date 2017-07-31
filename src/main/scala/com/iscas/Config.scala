@@ -31,6 +31,7 @@ object Config {
    * Kafka设置
    */
   var BrokerList: String = ""
+  var ZookeeperHost: String = ""
   /*
    * HBase设置
    */
@@ -108,6 +109,7 @@ object Config {
       }
       // Kafka
       BrokerList = m_Kafka_Params.getOrElse("metadata.broker.list", BrokerList)
+      ZookeeperHost = m_Data.getProperty("ZookeeperHost", ZookeeperHost) //m_Kafka_Params.getOrElse("", ZookeeperHost)
       if (UseKerberos) {
         m_Kafka_Params += ("security.protocol" -> "PLAINTEXTSASL")
       }
@@ -148,6 +150,7 @@ object Config {
         println(s"[${kv_pair._1}] ${kv_pair._2}")
       }
     )
+    println(s"[ZookeeperHost] $ZookeeperHost")
     println("--------------------------------HBase--------------------------------")
     m_HBase_Params.foreach(
       kv_pair => {
