@@ -18,6 +18,10 @@ object Consumer {
    * 主函数
    */
   def work(): Unit = {
+    if (Config.DebugMode) {
+      println("ERROR: This 'Consumer.work' function may not be executed!")
+      return
+    }
     val streaming_context: StreamingContext = StreamingContext.getOrCreate(Config.CheckpointPath, coreLogic)
     if (streaming_context == null) {
       if (Config.DebugMode) {
