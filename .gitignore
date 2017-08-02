@@ -1,5 +1,7 @@
 .*.swp
 dependency-reduced-pom.xml
+*.iml
+src/main/scala/META-INF
 
 target/*
 .idea/*

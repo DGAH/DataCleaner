@@ -3,7 +3,10 @@ package com.iscas
 import kafka.serializer.StringDecoder
 import net.sf.json.JSONObject
 import org.apache.spark.SparkConf
-import org.apache.spark.streaming.kafka.{HasOffsetRanges, KafkaUtils, OffsetRange}
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.spark.streaming.kafka010.{HasOffsetRanges, KafkaUtils, OffsetRange}
+import org.apache.spark.streaming.kafka010.LocationStrategies.PreferConsistent
+import org.apache.spark.streaming.kafka010.ConsumerStrategies.Subscribe
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.streaming.dstream.InputDStream
 
@@ -49,7 +52,7 @@ object Consumer {
       return null
     }
     // InputDStream
-    val input_dstream: InputDStream[(String, String)] = acquireInputStream(streaming_context)
+    val input_dstream: InputDStream[ConsumerRecord[String, String]] = acquireInputStream(streaming_context)
     if (input_dstream == null) {
       return null
     }
@@ -60,8 +63,8 @@ object Consumer {
     NewTask = true
     // FilterData
     input_dstream.flatMap(
-      line => {
-        val jsval: JSONObject = JSONObject.fromObject(line._2)
+      record => {
+        val jsval: JSONObject = JSONObject.fromObject(record.value)
         Some(jsval)
       }
     ).map(
@@ -87,10 +90,12 @@ object Consumer {
    * 建立连接
    * 代码参考：http://www.jianshu.com/p/00b591c5f623
    */
-  def acquireInputStream(streaming_context: StreamingContext): InputDStream[(String, String)] = {
+  def acquireInputStream(streaming_context: StreamingContext): InputDStream[ConsumerRecord[String, String]] = {
     val topics: Set[String] = Set(Config.Topic)
-    val input_stream: InputDStream[(String, String)] = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](
-      streaming_context, Config.m_Kafka_Params, topics
+    val input_stream: InputDStream[ConsumerRecord[String, String]] = KafkaUtils.createDirectStream[String, String](
+      streaming_context, 
+      PreferConsistent,
+      Subscribe[String, String](topics, Config.m_Kafka_Params)
     )
     input_stream
   }

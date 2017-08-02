@@ -3,7 +3,7 @@
   <groupId>com.iscas</groupId>
   <artifactId>DataCleaner</artifactId>
   <packaging>jar</packaging>
-  <version>v0.5.2</version>
+  <version>v0.6.2</version>
   <name>DataCleaner</name>
   <description>Spark streaming application for data clean</description>
   <inceptionYear>2017</inceptionYear>
@@ -20,7 +20,7 @@
     <maven.compiler.target>2.2</maven.compiler.target>
     <encoding>UTF-8</encoding>
     <scala.tools.version>2.10</scala.tools.version>
-    <scala.version>2.10.6</scala.version>
+    <scala.version>2.11.8</scala.version>
   </properties>
 
   <dependencies>
@@ -45,20 +45,25 @@
       <version>2.2.0</version>
     </dependency>
     <dependency>
-      <groupId>net.sf.json-lib</groupId>
-      <artifactId>json-lib</artifactId>
-      <version>2.4</version>
-      <classifier>jdk15</classifier>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka_2.11</artifactId>
+      <version>0.10.0.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
-      <version>0.8.2.1</version>
+      <version>0.10.0.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase-client</artifactId>
       <version>1.2.0</version>
+    </dependency>
+    <dependency>
+      <groupId>net.sf.json-lib</groupId>
+      <artifactId>json-lib</artifactId>
+      <version>2.4</version>
+      <classifier>jdk15</classifier>
     </dependency>
 
     <!-- Test -->
