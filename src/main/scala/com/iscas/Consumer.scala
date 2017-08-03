@@ -62,10 +62,10 @@ object Consumer {
     input_dstream.checkpoint(Seconds(Config.WorkInterval * 5))
     NewTask = true
     // FilterData
-    input_dstream.flatMap(
+    input_dstream.map(
       record => {
         val jsval: JSONObject = JSONObject.fromObject(record.value)
-        Some(jsval)
+        jsval
       }
     ).map(
       jsval => filterData(jsval)
