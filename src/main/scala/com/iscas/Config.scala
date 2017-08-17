@@ -1,5 +1,7 @@
 package com.iscas
 
+import org.apache.kafka.common.serialization.StringDeserializer
+
 import java.io.InputStream
 import java.util
 import java.util.Properties
@@ -25,14 +27,14 @@ object Config {
    */
   var AppName: String = "DataCleaner" // SparkConf 的应用程序名
   var WorkInterval: Int = 1 // StreamingContext 的工作时间间隔，也就是程序抓取数据的工作间隔。单位：秒
-  var Group: String = "default-group" //当前话题组
+  var Group: Object = "default_group" //当前话题组
   var Topic: String = "DataCollect" // 当前话题
   var CheckpointPath: String = "checkpoints" //检查点文件路径
   var UseKerberos: Boolean = false
   /*
    * Kafka设置
    */
-  var BrokerList: String = ""
+  var BrokerList: Object = ""
   var ZookeeperHost: String = ""
   /*
    * HBase设置
@@ -43,7 +45,7 @@ object Config {
    * 存储结构
    */
   var m_Data: Properties = new Properties()
-  var m_Kafka_Params: Map[String, String] = Map[String, String]()
+  var m_Kafka_Params: Map[String, Object] = Map[String, Object]()
   var m_HBase_Params: Map[String, String] = Map[String, String]()
   /*
    * 工作函数
@@ -88,7 +90,7 @@ object Config {
       Debug_PrintConfigs = m_Data.getProperty("Debug|PrintConfigs", Debug_PrintConfigs.toString).toBoolean
       // Spark Stream
       AppName = m_Data.getProperty("AppName", AppName)
-      Group = m_Data.getProperty("Group", Group)
+      Group = m_Data.getProperty("Group", "default_group")
       Topic = m_Data.getProperty("Topic", Topic)
       CheckpointPath = m_Data.getProperty("CheckpointPath", CheckpointPath)
       WorkInterval = m_Data.getProperty("WorkInterval", WorkInterval.toString).toInt
@@ -112,10 +114,15 @@ object Config {
         }
       }
       // Kafka
-      BrokerList = m_Kafka_Params.getOrElse("metadata.broker.list", BrokerList)
+      BrokerList = m_Kafka_Params.getOrElse("bootstrap.servers", BrokerList)
       ZookeeperHost = m_Data.getProperty("ZookeeperHost", ZookeeperHost) //m_Kafka_Params.getOrElse("", ZookeeperHost)
+      m_Kafka_Params += ("key.deserializer" -> classOf[StringDeserializer])
+      m_Kafka_Params += ("value.deserializer" -> classOf[StringDeserializer])
+      m_Kafka_Params += ("group.id" -> Group)
       if (UseKerberos) {
-        m_Kafka_Params += ("security.protocol" -> "PLAINTEXTSASL")
+        m_Kafka_Params += ("security.protocol" -> "SASL_PLAINTEXT")
+        m_Kafka_Params += ("sasl.mechanism" -> "GSSAPI")
+        m_Kafka_Params += ("sasl.kerberos.service.name" -> "kafka")
       }
       // HBase
       SubmitInterval = m_Data.getProperty("SubmitInterval", SubmitInterval.toString).toInt
