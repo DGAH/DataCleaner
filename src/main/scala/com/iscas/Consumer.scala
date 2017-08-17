@@ -91,7 +91,11 @@ object Consumer {
    * 代码参考：http://www.jianshu.com/p/00b591c5f623
    */
   def acquireInputStream(streaming_context: StreamingContext): InputDStream[ConsumerRecord[String, String]] = {
-    val topics: Set[String] = Set(Config.Topic)
+    val topics: Set[String] = if (Config.Topic.contains(',')) {
+      Config.Topic.split(',').toSet
+    } else {
+      Set(Config.Topic)
+    }
     val input_stream: InputDStream[ConsumerRecord[String, String]] = KafkaUtils.createDirectStream[String, String](
       streaming_context, 
       PreferConsistent,
