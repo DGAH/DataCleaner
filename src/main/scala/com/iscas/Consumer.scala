@@ -18,42 +18,23 @@ import org.apache.spark.streaming.dstream.InputDStream
 object Consumer {
   var NewTask: Boolean = false
   /*
-   * 主函数
-   */
-  def work(): Unit = {
-    if (Config.DebugMode) {
-      println("ERROR: This 'Consumer.work' function may not be executed!")
-      return
-    }
-    val streaming_context: StreamingContext = StreamingContext.getOrCreate(Config.CheckpointPath, coreLogic)
-    if (streaming_context == null) {
-      if (Config.DebugMode) {
-        println("ERROR: Create Streaming Context Failed!")
-      }
-      return
-    }
-    if (Config.DebugMode) {
-      if (NewTask) {
-        println("******** Create New Task ********")
-      } else {
-        println("******** Continue Last Task ********")
-      }
-    }
-    streaming_context.start()
-    streaming_context.awaitTermination()
-  }
-  /*
    * Core Logic
    */
   def coreLogic(): StreamingContext = {
     // StreamingContext
     val streaming_context: StreamingContext = acquireStreamingContext()
     if (streaming_context == null) {
+      if (Config.DebugMode) {
+        println("ERROR: Cannot acquire streaming context!")
+      }
       return null
     }
     // InputDStream
     val input_dstream: InputDStream[ConsumerRecord[String, String]] = acquireInputStream(streaming_context)
     if (input_dstream == null) {
+      if (Config.DebugMode) {
+        println("ERROR: Cannot acquire input stream!")
+      }
       return null
     }
     // Prepare
@@ -95,6 +76,10 @@ object Consumer {
       Config.Topic.split(',').toSet
     } else {
       Set(Config.Topic)
+    }
+    if (Config.DebugMode) {
+      println(s"Current Topics Count: ${topics.size}")
+      println(s"Current Topics: ${topics.mkString("; ")}")
     }
     val input_stream: InputDStream[ConsumerRecord[String, String]] = KafkaUtils.createDirectStream[String, String](
       streaming_context, 

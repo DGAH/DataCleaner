@@ -33,7 +33,7 @@ object Manager {
    */
   def commit(record: Record): Unit = {
     if (Config.DebugMode) {
-      println(s"commit (record: ${record.ID})")
+      println(s"commit (record: ${record.ID}, source: ${record.Type})")
     }
     saveRecord(record)
     val strtoday = Global.today()
