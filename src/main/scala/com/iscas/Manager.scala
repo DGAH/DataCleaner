@@ -185,6 +185,12 @@ object Manager {
    * 【内部函数】提交所有面单记录
    */
   def submitECRecords(): Unit = {
+    if (EC_Records.to_save.isEmpty) {
+      if (Config.DebugMode) {
+        println("No Express Contract Records To Submit.")
+      }
+      return
+    }
     var puts: List[Put] = List()
     EC_Records.to_save.foreach(
       kv_pair => {
@@ -198,6 +204,12 @@ object Manager {
    * 【内部函数】提交所有状态单记录
    */
   def submitECSRecords(): Unit = {
+    if (ECS_Records.to_save.isEmpty) {
+      if (Config.DebugMode) {
+        println("No Express Contract State Records To Submit.")
+      }
+      return
+    }
     var puts: List[Put] = List()
     ECS_Records.to_save.foreach(
       kv_pair => {
@@ -211,6 +223,12 @@ object Manager {
    * 【内部函数】提交所有统计信息
    */
   def submitRecordCounts(): Unit = {
+    if (RecordCounts.to_save.isEmpty) {
+      if (Config.DebugMode) {
+        println("No Express Record Statistics To Submit.")
+      }
+      return
+    }
     var gets: List[Get] = List()
     val clusterExp: Array[Byte] = "exp".getBytes("UTF-8")
     val clusterExpState: Array[Byte] = "expstate".getBytes("UTF-8")
@@ -283,6 +301,12 @@ object Manager {
    * 【内部函数】提交所有错误统计
    */
   def submitErrorRecords(): Unit = {
+    if (ErrorRecords.to_save.isEmpty) {
+      if (Config.DebugMode) {
+        println("No Express Error Statistics To Submit.")
+      }
+      return
+    }
     var puts: List[Put] = List()
     val clusterInfo: Array[Byte] = "info".getBytes("UTF-8")
     val columnID: Array[Byte] = "dataid".getBytes("UTF-8")
